@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import pycurl
 import re
 import time
+
+import pycurl
 
 from module.plugins.internal.Account import Account
 
@@ -10,7 +11,7 @@ from module.plugins.internal.Account import Account
 class OneFichierCom(Account):
     __name__    = "OneFichierCom"
     __type__    = "account"
-    __version__ = "0.15"
+    __version__ = "0.20"
     __status__  = "testing"
 
     __description__ = """1fichier.com account plugin"""
@@ -19,10 +20,10 @@ class OneFichierCom(Account):
                        ("Walter Purcaro", "vuolter@gmail.com")]
 
 
-    VALID_UNTIL_PATTERN = r'Your subscription will end the (\d+-\d+-\d+)'
+    VALID_UNTIL_PATTERN = r'Your subscription will end the (\d+\-\d+\-\d+)'
 
 
-    def parse_info(self, user, password, data, req):
+    def grab_info(self, user, password, data):
         validuntil = None
         trafficleft = -1
         premium = None
@@ -30,22 +31,24 @@ class OneFichierCom(Account):
         html = self.load("https://1fichier.com/console/abo.pl")
 
         m = re.search(self.VALID_UNTIL_PATTERN, html)
-        if m:
+        if m is not None:
             expiredate = m.group(1)
             self.log_debug("Expire date: " + expiredate)
 
             try:
                 validuntil = time.mktime(time.strptime(expiredate, "%Y-%m-%d"))
+
             except Exception, e:
-                self.log_error(e)
+                self.log_error(e, trace=True)
+
             else:
                 premium = True
 
         return {'validuntil': validuntil, 'trafficleft': trafficleft, 'premium': premium or False}
 
 
-    def login(self, user, password, data, req):
-        req.http.c.setopt(pycurl.REFERER, "https://1fichier.com/login.pl?lg=en")
+    def signin(self, user, password, data):
+        self.req.http.c.setopt(pycurl.REFERER, "https://1fichier.com/login.pl?lg=en")
 
         html = self.load("https://1fichier.com/login.pl?lg=en",
                          post={'mail'   : user,
@@ -55,4 +58,4 @@ class OneFichierCom(Account):
                                'valider': "Send"})
 
         if '>Invalid email address' in html or '>Invalid password' in html:
-            self.login_fail()
+            self.fail_login()

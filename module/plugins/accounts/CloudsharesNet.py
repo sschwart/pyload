@@ -3,15 +3,15 @@
 from module.plugins.internal.XFSAccount import XFSAccount
 
 
-class FileParadoxIn(XFSAccount):
-    __name__    = "FileParadoxIn"
+class CloudsharesNet(XFSAccount):
+    __name__    = "CloudsharesNet"
     __type__    = "account"
-    __version__ = "0.03"
+    __version__ = "0.02"
     __status__  = "testing"
 
-    __description__ = """FileParadox.in account plugin"""
+    __description__ = """Cloudshares.net account plugin"""
     __license__     = "GPLv3"
     __authors__     = [("Walter Purcaro", "vuolter@gmail.com")]
 
 
-    HOSTER_DOMAIN = "fileparadox.in"
+    PLUGIN_DOMAIN = "cloudshares.net"
