@@ -12,8 +12,8 @@ try:
 except ImportError:
     pass
 
-from module.plugins.internal.Addon import Addon, Expose
-from module.plugins.internal.misc import encode, fsjoin
+from module.plugins.internal.Addon import Addon
+from module.plugins.internal.misc import encode, Expose, fsjoin
 
 
 class Kernel32(object):
@@ -27,10 +27,10 @@ class Kernel32(object):
 class AntiStandby(Addon):
     __name__    = "AntiStandby"
     __type__    = "hook"
-    __version__ = "0.15"
+    __version__ = "0.17"
     __status__  = "testing"
 
-    __config__ = [("activated", "bool", "Activated"                       , True ),
+    __config__ = [("activated", "bool", "Activated"                       , False),
                   ("hdd"      , "bool", "Prevent HDD standby"             , True ),
                   ("system"   , "bool", "Prevent OS standby"              , True ),
                   ("display"  , "bool", "Prevent display standby"         , False),

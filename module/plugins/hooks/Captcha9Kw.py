@@ -7,26 +7,27 @@ import re
 import time
 
 from module.network.HTTPRequest import BadHeader
-from module.plugins.internal.Addon import Addon, threaded
+from module.plugins.internal.Addon import Addon
+from module.plugins.internal.misc import threaded
 
 
 class Captcha9Kw(Addon):
     __name__    = "Captcha9Kw"
     __type__    = "hook"
-    __version__ = "0.32"
+    __version__ = "0.37"
     __status__  = "testing"
 
-    __config__ = [("activated"     , "bool"    , "Activated"                                                                       , False                                                              ),
-                  ("check_client"  , "bool"    , "Don't use if client is connected"                                                , True                                                               ),
-                  ("confirm"       , "bool"    , "Confirm Captcha (cost +6 credits)"                                               , False                                                              ),
-                  ("captchaperhour", "int"     , "Captcha per hour"                                                                , "9999"                                                             ),
-                  ("captchapermin" , "int"     , "Captcha per minute"                                                              , "9999"                                                             ),
-                  ("prio"          , "int"     , "Priority (max 10)(cost +0 -> +10 credits)"                                       , "0"                                                                ),
-                  ("queue"         , "int"     , "Max. Queue (max 999)"                                                            , "50"                                                               ),
-                  ("hoster_options", "str"     , "Hoster options (format: pluginname:prio=1:selfsolfe=1:confirm=1:timeout=900|...)", "ShareonlineBiz:prio=0:timeout=999 | UploadedTo:prio=0:timeout=999"),
-                  ("selfsolve"     , "bool"    , "Selfsolve (manually solve your captcha in your 9kw client if active)"            , "0"                                                                ),
-                  ("passkey"       , "password", "API key"                                                                         , ""                                                                 ),
-                  ("timeout"       , "int"     , "Timeout in seconds (min 60, max 3999)"                                           , "900"                                                              )]
+    __config__ = [("activated"     , "bool"    , "Activated"                                                                      , False                                                              ),
+                  ("check_client"  , "bool"    , "Don't use if client is connected"                                               , True                                                               ),
+                  ("confirm"       , "bool"    , "Confirm Captcha (cost +6 credits)"                                              , False                                                              ),
+                  ("captchaperhour", "int"     , "Captcha per hour"                                                               , "9999"                                                             ),
+                  ("captchapermin" , "int"     , "Captcha per minute"                                                             , "9999"                                                             ),
+                  ("prio"          , "int"     , "Priority (max 10)(cost +0 -> +10 credits)"                                      , "0"                                                                ),
+                  ("queue"         , "int"     , "Max. Queue (max 999)"                                                           , "50"                                                               ),
+                  ("hoster_options", "str"     , "Hoster options (format pluginname;prio 1;selfsolve 1;confirm 1;timeout 900|...)", ""),
+                  ("selfsolve"     , "bool"    , "Selfsolve (manually solve your captcha in your 9kw client if active)"           , "0"                                                                ),
+                  ("passkey"       , "password", "API key"                                                                        , ""                                                                 ),
+                  ("timeout"       , "int"     , "Timeout in seconds (min 60, max 3999)"                                          , "900"                                                              )]
 
     __description__ = """Send captchas to 9kw.eu"""
     __license__     = "GPLv3"
@@ -78,13 +79,13 @@ class Captcha9Kw(Addon):
                       'cpm'           : self.config.get('captchapermin')}
 
         for opt in str(self.config.get('hoster_options').split('|')):
-            details = map(str.strip, opt.split(':'))
+            details = map(str.strip, opt.split(';'))
 
-            if not details or details[0].lower() is not pluginname.lower():
+            if not details or details[0].lower() != pluginname.lower():
                 continue
 
             for d in details:
-                hosteroption = d.split("=")
+                hosteroption = d.split(" ")
 
                 if len(hosteroption) < 2 or not hosteroption[1].isdigit():
                     continue
@@ -191,7 +192,7 @@ class Captcha9Kw(Addon):
         for opt in str(self.config.get('hoster_options').split('|')):
             details = map(str.strip, opt.split(':'))
 
-            if not details or details[0].lower() is not pluginname.lower():
+            if not details or details[0].lower() != pluginname.lower():
                 continue
 
             for d in details:
@@ -212,10 +213,10 @@ class Captcha9Kw(Addon):
 
 
     def _captcha_response(self, task, correct):
-        type = "correct" if correct else "refund"
+        request_type = "correct" if correct else "refund"
 
         if 'ticket' not in task.data:
-            self.log_debug("No CaptchaID for %s request (task: %s)" % (type, task))
+            self.log_debug("No CaptchaID for %s request (task: %s)" % (request_type, task))
             return
 
         passkey = self.config.get('passkey')
@@ -230,14 +231,14 @@ class Captcha9Kw(Addon):
                               'source' : "pyload",
                               'id'     : task.data['ticket']})
 
-            self.log_debug("Request %s: %s" % (type, res))
+            self.log_debug("Request %s: %s" % (request_type, res))
 
             if res == "OK":
                 break
 
             time.sleep(5)
         else:
-            self.log_debug("Could not send %s request: %s" % (type, res))
+            self.log_debug("Could not send %s request: %s" % (request_type, res))
 
 
     def captcha_correct(self, task):

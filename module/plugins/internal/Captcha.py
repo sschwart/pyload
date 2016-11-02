@@ -12,7 +12,7 @@ from module.plugins.internal.misc import encode
 class Captcha(Plugin):
     __name__    = "Captcha"
     __type__    = "captcha"
-    __version__ = "0.52"
+    __version__ = "0.54"
     __status__  = "stable"
 
     __description__ = """Base anti-captcha plugin"""
@@ -100,10 +100,14 @@ class Captcha(Plugin):
             result = self.task.result
 
             if self.task.error:
-                self.pyfile.plugin.retry_captcha(msg=self.task.error)
+                if not self.task.handler and not self.pyload.isClientConnected():
+                    self.log_warning(_("No Client connected for captcha decrypting"))
+                    self.fail(_("No Client connected for captcha decrypting"))
+                else:
+                    self.pyfile.plugin.retry_captcha(msg=self.task.error)
 
             elif self.task.result:
-                self.log_info(_("Captcha result: `%s`") % result)
+                self.log_info(_("Captcha result: `%s`") % (result,))
 
             else:
                 self.pyfile.plugin.retry_captcha(msg=_("No captcha result obtained in appropriate timing"))

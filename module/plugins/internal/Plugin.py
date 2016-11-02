@@ -17,11 +17,13 @@ from module.plugins.Plugin import Abort, Fail, Reconnect, Retry, SkipDownload as
 from module.plugins.internal.misc import (Config, DB, decode, encode, exists, fixurl, fsjoin,
                                           format_exc, html_unescape, parse_html_header, remove, set_cookies)
 
+_decode = decode  #@NOTE: save decode() as _decode() for use with load(url, decode='decode-str')
+
 
 class Plugin(object):
     __name__    = "Plugin"
     __type__    = "plugin"
-    __version__ = "0.65"
+    __version__ = "0.68"
     __status__  = "stable"
 
     __config__  = []  #: [("name", "type", "desc", "default")]
@@ -151,6 +153,13 @@ class Plugin(object):
             os.chown(path, uid, gid)
 
 
+    def skip(self, msg):
+        """
+        Skip and give msg
+        """
+        raise Skip(encode(msg))  # @TODO: Remove `encode` in 0.4.10
+
+
     def fail(self, msg):
         """
         Fail and give msg
@@ -197,7 +206,11 @@ class Plugin(object):
         elif type(redirect) is int:
             req.http.c.setopt(pycurl.MAXREDIRS, redirect)
 
-        html = req.load(url, get, post, ref, bool(cookies), just_header, multipart, decode is True)  #@TODO: Fix network multipart in 0.4.10
+        #@TODO: Move to network in 0.4.10
+        if isinstance(ref, basestring):
+            req.lastURL = ref
+
+        html = req.load(url, get, post, bool(ref), bool(cookies), just_header, multipart, decode is True)  #@TODO: Fix network multipart in 0.4.10
 
         #@TODO: Move to network in 0.4.10
         if not redirect:
@@ -213,7 +226,7 @@ class Plugin(object):
 
         #@TODO: Move to network in 0.4.10
         if isinstance(decode, basestring):
-            html = decode(html, decode)
+            html = _decode(html, decode)
 
         self.last_html = html
 
@@ -243,7 +256,12 @@ class Plugin(object):
                 os.makedirs(os.path.join("tmp", self.classname))
 
             with open(framefile, "wb") as f:
-                f.write(encode(self.last_html))
+                try:
+                    html = encode(self.last_html)
+                except Exception:
+                    html = self.last_html
+
+                f.write(html)
 
         except IOError, e:
             self.log_error(e)

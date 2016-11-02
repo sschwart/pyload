@@ -3,7 +3,6 @@
 from __future__ import with_statement
 
 import __builtin__
-import hashlib
 import mimetypes
 import os
 import re
@@ -34,7 +33,7 @@ if not hasattr(__builtin__.property, "setter"):
 class Hoster(Base):
     __name__    = "Hoster"
     __type__    = "hoster"
-    __version__ = "0.51"
+    __version__ = "0.59"
     __status__  = "stable"
 
     __pattern__ = r'^unmatchable$'
@@ -139,8 +138,8 @@ class Hoster(Base):
         self.pyload.hookManager.dispatchEvent("download_processed", self.pyfile)
 
         try:
-            unfinished = any(fdata.get('status') == 3 for fid, fdata in pypack.getChildren().items()
-                             if fid is not self.pyfile.id)
+            unfinished = any(fdata.get('status') in (3, 7) for fid, fdata in pypack.getChildren().items()
+                             if fid != self.pyfile.id)
             if unfinished:
                 return
 
@@ -188,7 +187,7 @@ class Hoster(Base):
                     resource = location
 
                 elif code == 301 or resumable:
-                    self.log_debug("Redirect #%d to: %s" % (i, location))
+                    self.log_debug(_("Redirect #%d to: %s") % (i, location))
                     header = self.load(location, just_header=True)
                     url = location
                     continue
@@ -231,9 +230,14 @@ class Hoster(Base):
             newname = self.req.httpDownload(url, file, get, post,
                                             ref, cookies, chunks, resume,
                                             self.pyfile.setProgress, disposition)
+
+        except IOError, e:
+            self.log_error(e.message)
+            self.fail(_("IOError %s") % e.errno)
+
         except BadHeader, e:
             self.req.http.code = e.code
-            raise BadHeader(e)
+            raise
 
         else:
             if self.req.code in (404, 410):
@@ -291,7 +295,7 @@ class Hoster(Base):
                 os.makedirs(dl_dir)
 
             except Exception, e:
-                self.fail(e)
+                self.fail(e.message)
 
         self.set_permissions(dl_dir)
 
@@ -348,7 +352,7 @@ class Hoster(Base):
             content = f.read(read_size)
 
         #: Produces encoding errors, better log to other file in the future?
-        # self.log_debug("Content: %s" % content)
+        # self.log_debug(_("Content: %s") % content)
         for name, rule in rules.items():
             if isinstance(rule, basestring):
                 if rule in content:

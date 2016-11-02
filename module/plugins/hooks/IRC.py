@@ -13,13 +13,13 @@ from threading import Thread
 
 from module.Api import PackageDoesNotExists, FileDoesNotExists
 from module.plugins.internal.Notifier import Notifier
-from module.internal.misc import formatSize
+from module.plugins.internal.misc import format_size
 
 
 class IRC(Thread, Notifier):
     __name__    = "IRC"
     __type__    = "hook"
-    __version__ = "0.19"
+    __version__ = "0.23"
     __status__  = "testing"
 
     __config__ = [("activated", "bool", "Activated"                                    , False                    ),
@@ -41,7 +41,7 @@ class IRC(Thread, Notifier):
 
     def __init__(self, *args, **kwargs):
         Thread.__init__(self)
-        Addon.__init__(self, *args, **kwargs)
+        Notifier.__init__(self, *args, **kwargs)
         self.setDaemon(True)
 
 
@@ -132,7 +132,7 @@ class IRC(Thread, Notifier):
                 first = line.split()
 
                 if first[0] == "PING":
-                    self.sock.send("PONG %s\r\n" % first[1])
+                    self.sock.send("PONG :%s\r\n" % first[1])
 
                 if first[0] == "ERROR":
                     raise IRCError(line)
@@ -155,7 +155,7 @@ class IRC(Thread, Notifier):
         if not msg['origin'].split("!", 1)[0] in self.config.get('owner').split():
             return
 
-        if msg['target'].split("!", 1)[0] is not self.config.get('nick'):
+        if msg['target'].split("!", 1)[0] != self.config.get('nick'):
             return
 
         if msg['action'] != "PRIVMSG":
@@ -229,7 +229,7 @@ class IRC(Thread, Notifier):
                              data.fid,
                              data.name,
                              data.statusmsg,
-                             "%s/s" % formatSize(data.speed),
+                             "%s/s" % format_size(data.speed),
                              "%s" % data.format_eta,
                              temp_progress
                          ))
